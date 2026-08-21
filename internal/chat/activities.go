@@ -17,7 +17,7 @@ import (
 type Activities struct {
 	// BaseURL of the Ollama server; defaults to http://localhost:11434.
 	BaseURL string
-	// Model name to run; defaults to $OLLAMA_MODEL or "llama3.2".
+	// Model name to run; defaults to $OLLAMA_MODEL or "qwen3:14b".
 	Model string
 }
 
@@ -25,6 +25,7 @@ type ollamaChatRequest struct {
 	Model    string    `json:"model"`
 	Messages []Message `json:"messages"`
 	Stream   bool      `json:"stream"`
+	Think    bool      `json:"think"`
 	Tools    []tool    `json:"tools,omitempty"`
 }
 
@@ -88,10 +89,18 @@ func (a *Activities) CompleteChat(ctx context.Context, history []Message) (Messa
 		model = os.Getenv("OLLAMA_MODEL")
 	}
 	if model == "" {
-		model = "llama3.2"
+		model = "qwen3:14b"
 	}
 
-	body, err := json.Marshal(ollamaChatRequest{Model: model, Messages: history, Tools: tools})
+	// Thinking is off by default: qwen3's reasoning phase multiplies latency
+	// several times over for chat-sized questions. Non-thinking models ignore
+	// the field. Set OLLAMA_THINK=true to trade speed for more careful answers.
+	body, err := json.Marshal(ollamaChatRequest{
+		Model:    model,
+		Messages: history,
+		Think:    os.Getenv("OLLAMA_THINK") == "true",
+		Tools:    tools,
+	})
 	if err != nil {
 		return Message{}, err
 	}

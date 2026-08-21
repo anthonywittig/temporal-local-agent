@@ -17,8 +17,10 @@ func Workflow(ctx workflow.Context, state State) error {
 		state.History = []Message{{
 			Role:    "system",
 			Content: "You are a helpful assistant. Keep replies concise. " +
-				"When a message with role \"tool\" appears, it is the result of a tool you called: " +
-				"answer the user's question directly using that result.",
+				"Answer questions directly from your own knowledge; most questions need no tools. " +
+				"Only call a tool when the question actually requires it, and never invent tools " +
+				"that don't exist. When a message with role \"tool\" appears, it is the result of " +
+				"a tool you called: answer the user's question directly using that result.",
 		}}
 	}
 
