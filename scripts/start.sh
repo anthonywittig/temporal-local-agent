@@ -8,7 +8,7 @@ cd "$(dirname "$0")/.."
 RUN_DIR=.run
 mkdir -p "$RUN_DIR"
 
-MODEL="${OLLAMA_MODEL:-llama3.2}"
+MODEL="${OLLAMA_MODEL:-qwen3:14b}"
 
 is_alive() { # is_alive <name> — true if the pidfile points at a live process
   local pid_file="$RUN_DIR/$1.pid"
