@@ -65,6 +65,11 @@ func Workflow(ctx workflow.Context, state State) error {
 						if err := workflow.ExecuteActivity(actCtx, a.GetCurrentTime).Get(ctx, &result); err != nil {
 							return "", err
 						}
+					case ToolListDirectory:
+						path, _ := tc.Function.Arguments["path"].(string)
+						if err := workflow.ExecuteActivity(actCtx, a.ListDirectory, path).Get(ctx, &result); err != nil {
+							return "", err
+						}
 					default:
 						result = "error: unknown tool " + tc.Function.Name
 					}

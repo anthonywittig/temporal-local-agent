@@ -19,6 +19,10 @@ const (
 	// ToolGetCurrentTime is the tool name the model uses to ask for the
 	// current date and time.
 	ToolGetCurrentTime = "get_current_time"
+
+	// ToolListDirectory is the tool name the model uses to list the contents
+	// of a directory.
+	ToolListDirectory = "list_directory"
 )
 
 // Message is one turn in the conversation, matching Ollama's chat format.
