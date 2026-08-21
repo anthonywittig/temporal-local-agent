@@ -17,7 +17,7 @@ import (
 type Activities struct {
 	// BaseURL of the Ollama server; defaults to http://localhost:11434.
 	BaseURL string
-	// Model name to run; defaults to $OLLAMA_MODEL or "llama3.2".
+	// Model name to run; defaults to $OLLAMA_MODEL or "qwen3:14b".
 	Model string
 }
 
@@ -88,7 +88,7 @@ func (a *Activities) CompleteChat(ctx context.Context, history []Message) (Messa
 		model = os.Getenv("OLLAMA_MODEL")
 	}
 	if model == "" {
-		model = "llama3.2"
+		model = "qwen3:14b"
 	}
 
 	body, err := json.Marshal(ollamaChatRequest{Model: model, Messages: history, Tools: tools})

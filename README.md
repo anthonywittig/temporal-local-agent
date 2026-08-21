@@ -28,7 +28,7 @@ Each chat session is one long-running Temporal workflow (`internal/chat/workflow
 - Go 1.22+
 - [Temporal CLI](https://docs.temporal.io/cli) (`brew install temporal`)
 - [Ollama](https://ollama.com) (`brew install ollama`), with a model pulled:
-  `ollama pull llama3.2`
+  `ollama pull qwen3:14b`
 
 ## Running
 
@@ -61,4 +61,4 @@ Quitting the REPL (`/quit`) leaves the workflow running — rejoin the same
 session later and the model still has the full conversation context. Watch the
 workflow's event history live in the Temporal UI at http://localhost:8233.
 
-Set `OLLAMA_MODEL` on the worker to use a different model (default `llama3.2`).
+Set `OLLAMA_MODEL` on the worker to use a different model (default `qwen3:14b`).
