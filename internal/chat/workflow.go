@@ -16,7 +16,9 @@ func Workflow(ctx workflow.Context, state State) error {
 	if state.History == nil {
 		state.History = []Message{{
 			Role:    "system",
-			Content: "You are a helpful assistant. Keep replies concise.",
+			Content: "You are a helpful assistant. Keep replies concise. " +
+				"When a message with role \"tool\" appears, it is the result of a tool you called: " +
+				"answer the user's question directly using that result.",
 		}}
 	}
 
@@ -33,17 +35,46 @@ func Workflow(ctx workflow.Context, state State) error {
 					MaximumAttempts: 3,
 				},
 			}
-			var reply string
-			err := workflow.ExecuteActivity(
-				workflow.WithActivityOptions(ctx, ao),
-				(&Activities{}).CompleteChat, state.History,
-			).Get(ctx, &reply)
-			if err != nil {
-				return "", err
-			}
+			actCtx := workflow.WithActivityOptions(ctx, ao)
+			a := &Activities{}
 
-			state.History = append(state.History, Message{Role: "assistant", Content: reply})
-			return reply, nil
+			// Agent loop: the model either answers or requests tool calls.
+			// Each tool call runs as its own activity, so it is durable and
+			// visible in the workflow's event history.
+			const maxToolRounds = 5
+			for round := 0; ; round++ {
+				var assistant Message
+				err := workflow.ExecuteActivity(actCtx, a.CompleteChat, state.History).Get(ctx, &assistant)
+				if err != nil {
+					return "", err
+				}
+				state.History = append(state.History, assistant)
+
+				if len(assistant.ToolCalls) == 0 {
+					return assistant.Content, nil
+				}
+				if round >= maxToolRounds {
+					return "", temporal.NewNonRetryableApplicationError(
+						"model exceeded max tool rounds", "TooManyToolRounds", nil)
+				}
+
+				for _, tc := range assistant.ToolCalls {
+					var result string
+					switch tc.Function.Name {
+					case ToolGetCurrentTime:
+						if err := workflow.ExecuteActivity(actCtx, a.GetCurrentTime).Get(ctx, &result); err != nil {
+							return "", err
+						}
+					default:
+						result = "error: unknown tool " + tc.Function.Name
+					}
+					state.History = append(state.History, Message{
+						Role:     "tool",
+						ToolName: tc.Function.Name,
+						Content:  result,
+					})
+				}
+			}
 		},
 	); err != nil {
 		return err
