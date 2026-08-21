@@ -8,6 +8,8 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -48,6 +50,22 @@ var tools = []tool{
 			Parameters: map[string]any{
 				"type":       "object",
 				"properties": map[string]any{},
+			},
+		},
+	},
+	{
+		Type: "function",
+		Function: toolFunction{
+			Name:        ToolListDirectory,
+			Description: "List the files and subdirectories in a directory.",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"path": map[string]any{
+						"type":        "string",
+						"description": "The directory to list. Defaults to the current working directory.",
+					},
+				},
 			},
 		},
 	},
@@ -113,4 +131,47 @@ func (a *Activities) CompleteChat(ctx context.Context, history []Message) (Messa
 // answered out here, where the result gets recorded in the event history.
 func (a *Activities) GetCurrentTime(ctx context.Context) (string, error) {
 	return time.Now().Format("Monday, January 2, 2006, 3:04 PM MST"), nil
+}
+
+// maxDirEntries caps list_directory output so a huge directory can't blow up
+// the model's context (or the workflow's event history).
+const maxDirEntries = 200
+
+// ListDirectory is the list_directory tool. Expected problems (missing or
+// unreadable directory) are returned as the tool result rather than an error,
+// so the model can see what went wrong and recover instead of the activity
+// retrying a call that will never succeed.
+func (a *Activities) ListDirectory(ctx context.Context, path string) (string, error) {
+	if path == "" {
+		path = "."
+	}
+	if strings.HasPrefix(path, "~/") || path == "~" {
+		home, err := os.UserHomeDir()
+		if err == nil {
+			path = filepath.Join(home, strings.TrimPrefix(path, "~"))
+		}
+	}
+
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		return "error: " + err.Error(), nil
+	}
+
+	var b strings.Builder
+	fmt.Fprintf(&b, "contents of %s:\n", path)
+	for i, entry := range entries {
+		if i == maxDirEntries {
+			fmt.Fprintf(&b, "... and %d more entries\n", len(entries)-maxDirEntries)
+			break
+		}
+		name := entry.Name()
+		if entry.IsDir() {
+			name += "/"
+		}
+		b.WriteString(name + "\n")
+	}
+	if len(entries) == 0 {
+		b.WriteString("(empty)\n")
+	}
+	return b.String(), nil
 }

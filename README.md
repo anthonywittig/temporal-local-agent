@@ -15,7 +15,7 @@ Each chat session is one long-running Temporal workflow (`internal/chat/workflow
   result. Activity retries come for free from Temporal.
 - The model can call **tools**. When a reply comes back with tool calls
   instead of text, the workflow runs each tool as its own activity (e.g.
-  `GetCurrentTime`), appends the result to the history, and asks the model
+  `GetCurrentTime`, `ListDirectory`), appends the result to the history, and asks the model
   again — so every tool invocation is durable, retryable, and visible in the
   workflow's event history.
 - When Temporal suggests the event history is getting large, the workflow
